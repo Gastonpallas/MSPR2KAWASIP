@@ -1,0 +1,110 @@
+version: '3.8'
+
+name: kawasip
+
+services:
+  mariadb:
+    container_name: kawasip-mariadb
+    image: mariadb:10.5
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: kawasip
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    ports:
+      - "3308:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uadmin -padmin"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - kawa-network
+
+  server:
+    container_name: kawasip-server
+    build: ./server
+    ports:
+      - '8081:8080'
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - kawa-network
+    restart: on-failure
+    links:
+      - mariadb
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: kawasip-jenkins
+    volumes:
+      - ./jenkins:/app/jenkins_home
+    ports:
+      - "8082:8080"
+    networks:
+      - cicd-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: "rabbitmq"
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: badbunny
+      RABBITMQ_DEFAULT_PASS: badbunny
+    networks:
+      - kawa-network
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: kawasip-ngrok
+    volumes:
+      - ./ngrok/ngrok.yml:/etc/ngrok.yml
+    environment:
+      - NGROK_PORT=${NGROK_PORT}
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    depends_on:
+      - jenkins
+    ports:
+      - "4040:4040"
+    command: http --domain=${NGROK_DOMAIN} ${NGROK_PORT}
+    networks:
+      - cicd-network
+
+  sonarqube:
+    image: sonarqube:latest
+    container_name: kawa-sonarqube
+    ports:
+      - "9001:9000"
+      - "9093:9092"
+    environment:
+      - SONARQUBE_JDBC_URL=jdbc:postgresql://postgresdb:5432/sonar
+      - SONARQUBE_JDBC_USERNAME=sonar
+      - SONARQUBE_JDBC_PASSWORD=sonar
+    volumes:
+      - ./sonarqube:/app/sonarqube_home
+    networks:
+      - cicd-network
+
+  postgresdb:
+    image: postgres:latest
+    container_name: kawa-postgres
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonar
+    volumes:
+      - ./postgres:/app/postgres_home
+    networks:
+      - cicd-network
+
+networks:
+  kawa-network:
+    driver: bridge
+  cicd-network:
+    driver: bridge

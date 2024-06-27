@@ -1,0 +1,88 @@
+jenkins:
+
+  # Global Configuration
+  systemMessage: "Welcome to Jenkins for KawaSip."
+  remotingSecurity:
+    enabled: true
+
+  # Users
+  securityRealm:
+    local:
+      allowsSignup: false
+      enableCaptcha: false
+      users:
+        - id: "admin"
+          name: "Admin"
+          password: "admin"
+        - id: "phrk"
+          name: "Phearoak"
+          password: "admin"
+        - id: "gstn"
+          name: "Gaston"
+          password: "user"
+        - id: "kthr"
+          name: "Kaouther"
+          password: "admin"
+        - id: "grg"
+          name: "Greg"
+          password: "user"
+        - id: "sch"
+          name: "Sacha"
+          password: "user"
+        - id: "phearoak"
+          name: "Phearoak"
+          password: "admin"
+
+  # Authorization strategy
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "admin"
+            entries:
+              - user: "admin"
+              - user: "phrk"
+              - user: "phearoak"
+            description: "KawaSip Administrator"
+            pattern: ".*"
+            permissions:
+              - "Overall/Administer"
+          - name: "collaborator"
+            entries:
+              - user: "gstn"
+            description: "Team member"
+            pattern: ".*"
+            permissions:
+              - "Job/Build"
+              - "Job/Read"
+              - "Job/Workspace"
+              - "Overall/Read"
+          - name: "gorilla"
+            entries:
+              - user: "kthr"
+            description: "Group Obsessively Researching Innovation Linked to Learning and Accomplishment"
+            pattern: ".*"
+            permissions:
+              - "Job/Build"
+              - "Job/Read"
+              - "Job/Workspace"
+              - "Overall/Read"
+              - "Job/Create"
+              - "Job/Configure"
+              - "Job/Delete"
+              - "Job/Move"
+              - "Job/Cancel"
+          - name: "assist"
+            entries:
+              - user: "grg"
+              - user: "sch"
+            description: "Assistant"
+            pattern: ".*"
+            permissions:
+              - "Job/Read"
+              - "Job/Workspace"
+              - "Overall/Read"
+
+jobs:
+  - file: /app/jenkins_home/jobs.groovy
+# Folder & Jobs
